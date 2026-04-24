@@ -7,7 +7,7 @@ function App() {
 
   const handleOptimize = async () => {
 const res = await fetch("https://optiseo.onrender.com/optimize", {        "Content-Type": "application/json",
-      },
+      }
       body: JSON.stringify({ keyword }),
     });
 
