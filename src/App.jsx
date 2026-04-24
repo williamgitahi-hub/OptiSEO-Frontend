@@ -6,7 +6,7 @@ function App() {
   const [results, setResults] = useState([]);
 
   const handleOptimize = async () => {
-    const res = await fetch("http://optiseo.onrender.com/optimize", {
+    const res = await fetch("http://optiseo.onrender.com.onrender.com/optimize", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
