@@ -3,55 +3,55 @@ import "./App.css";
 
 function App() {
   const [keyword, setKeyword] = useState("");
-  const [result, setResult] = useState("");
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const optimizeKeyword = async () => {
-    try {
-      setLoading(true);
-      setResult("");
+  const optimize = async () => {
+    setLoading(true);
+    setData(null);
 
-      const res = await fetch("https://optiseo.onrender.com/optimize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ keyword })
-      });
+    const res = await fetch("https://optiseo.onrender.com/optimize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keyword })
+    });
 
-      const data = await res.json();
-      setResult(JSON.stringify(data, null, 2));
-    } catch (error) {
-      console.error("Error:", error);
-      setResult("Error connecting to backend");
-    } finally {
-      setLoading(false);
-    }
+    const result = await res.json();
+    setData(result);
+    setLoading(false);
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h1>Keyword Optimizer</h1>
+    <div style={{ padding: "30px", fontFamily: "Arial" }}>
+      <h1>SEO Keyword Optimizer</h1>
 
       <input
-        type="text"
         value={keyword}
-        placeholder="Enter keyword..."
         onChange={(e) => setKeyword(e.target.value)}
+        placeholder="Enter keyword"
         style={{ padding: "10px", width: "300px" }}
       />
 
-      <br /><br />
-
-      <button onClick={optimizeKeyword} disabled={loading}>
-        {loading ? "Optimizing..." : "Optimize"}
+      <button onClick={optimize} style={{ marginLeft: "10px" }}>
+        Optimize
       </button>
 
-      <br /><br />
+      {loading && <p>Analyzing keyword...</p>}
 
-      <pre style={{ background: "#f4f4f4", padding: "10px" }}>
-        {result}
-      </pre>
+      {data && (
+        <div style={{ marginTop: "20px" }}>
+          <h3>Keyword: {data.keyword}</h3>
+          <p>SEO Score: {data.seo_score}</p>
+          <p>Difficulty: {data.difficulty}</p>
+
+          <h4>Suggestions:</h4>
+          <ul>
+            {data.suggestions.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
