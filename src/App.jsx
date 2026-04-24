@@ -16,10 +16,9 @@ function App() {
       body: JSON.stringify({ keyword })
     });
 
-    const result = await res.json();
-    setData(result);
-    setLoading(false);
-  };
+const result = await res.json();
+console.log(result); // ADD THIS
+setData(result);  };
 
   return (
     <div style={{ padding: "30px", fontFamily: "Arial" }}>
@@ -46,14 +45,14 @@ function App() {
 
           <h4>Suggestions:</h4>
           <ul>
-            {data.suggestions.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
+{data?.suggestions && Array.isArray(data.suggestions) && (
+  <>
+    <h4>Suggestions:</h4>
+    <ul>
+      {data.suggestions.map((s, i) => (
+        <li key={i}>{s}</li>
+      ))}
+    </ul>
+  </>
+)}
 export default App;
