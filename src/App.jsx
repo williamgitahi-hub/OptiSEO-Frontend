@@ -7,18 +7,27 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   const optimize = async () => {
-    setLoading(true);
-    setData(null);
+    try {
+      setLoading(true);
+      setData(null);
 
-    const res = await fetch("https://optiseo.onrender.com/optimize", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ keyword })
-    });
+      const res = await fetch("https://optiseo.onrender.com/optimize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ keyword })
+      });
 
-const result = await res.json();
-console.log(result); // ADD THIS
-setData(result);  };
+      const result = await res.json();
+      console.log(result);
+      setData(result);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{ padding: "30px", fontFamily: "Arial" }}>
@@ -43,16 +52,20 @@ setData(result);  };
           <p>SEO Score: {data.seo_score}</p>
           <p>Difficulty: {data.difficulty}</p>
 
-          <h4>Suggestions:</h4>
-          <ul>
-{data?.suggestions && Array.isArray(data.suggestions) && (
-  <>
-    <h4>Suggestions:</h4>
-    <ul>
-      {data.suggestions.map((s, i) => (
-        <li key={i}>{s}</li>
-      ))}
-    </ul>
-  </>
-)}
+          {data?.suggestions && Array.isArray(data.suggestions) && (
+            <>
+              <h4>Suggestions:</h4>
+              <ul>
+                {data.suggestions.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default App;
