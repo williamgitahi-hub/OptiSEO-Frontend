@@ -11,7 +11,7 @@ function App() {
       setLoading(true);
       setData(null);
 
-      const res = await fetch("https://optiseo.onrender.com/optimize", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/optimize`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
