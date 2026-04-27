@@ -1,15 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
 function App() {
   const [keyword, setKeyword] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [history, setHistory] = useState(() => {
+    const saved = localStorage.getItem("seo_history");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("seo_history", JSON.stringify(history));
+  }, [history]);
 
   const optimize = async () => {
+    if (!keyword.trim()) return;
     try {
       setLoading(true);
       setData(null);
+      setError(null);
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/optimize`, {
         method: "POST",
@@ -20,50 +31,168 @@ function App() {
       });
 
       const result = await res.json();
-      console.log(result);
       setData(result);
-    } catch (error) {
-      console.error(error);
+      setHistory(prev => [
+        { ...result, timestamp: new Date().toLocaleString() },
+        ...prev.filter(h => h.keyword !== result.keyword)
+      ].slice(0, 10));
+
+    } catch (err) {
+      setError("Failed to fetch results. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") optimize();
+  };
+
+  const clearHistory = () => {
+    setHistory([]);
+    localStorage.removeItem("seo_history");
+  };
+
+  const getDifficultyClass = (difficulty) => {
+    if (difficulty === "Easy") return "badge badge-easy";
+    if (difficulty === "Medium") return "badge badge-medium";
+    return "badge badge-hard";
+  };
+
+  const getScoreColor = (score) => {
+    if (score >= 70) return "#00c896";
+    if (score >= 50) return "#f5a623";
+    return "#e05c5c";
+  };
+
   return (
-    <div style={{ padding: "30px", fontFamily: "Arial" }}>
-      <h1>SEO Keyword Optimizer</h1>
+    <div className="app">
+      {/* Header */}
+      <header className="header">
+        <div className="logo">⚡ OptiSEO</div>
+        <p className="tagline">AI-Powered SEO Keyword Optimizer</p>
+      </header>
 
-      <input
-        value={keyword}
-        onChange={(e) => setKeyword(e.target.value)}
-        placeholder="Enter keyword"
-        style={{ padding: "10px", width: "300px" }}
-      />
+      {/* Search */}
+      <div className="search-container">
+        <div className="search-box">
+          <input
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Enter a keyword to analyze..."
+            className="search-input"
+          />
+          <button
+            onClick={optimize}
+            disabled={loading}
+            className="search-btn"
+          >
+            {loading ? "Analyzing..." : "Optimize"}
+          </button>
+        </div>
+        {error && <p className="error">{error}</p>}
+      </div>
 
-      <button onClick={optimize} style={{ marginLeft: "10px" }}>
-        Optimize
-      </button>
-
-      {loading && <p>Analyzing keyword...</p>}
-
-      {data && (
-        <div style={{ marginTop: "20px" }}>
-          <h3>Keyword: {data.keyword}</h3>
-          <p>SEO Score: {data.seo_score}</p>
-          <p>Difficulty: {data.difficulty}</p>
-
-          {data?.suggestions && Array.isArray(data.suggestions) && (
-            <>
-              <h4>Suggestions:</h4>
-              <ul>
-                {data.suggestions.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            </>
-          )}
+      {/* Results */}
+      {loading && (
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Analyzing keyword...</p>
         </div>
       )}
+
+      {data && !loading && (
+        <div className="results-container">
+          <div className="results-header">
+            <h2 className="results-keyword">"{data.keyword}"</h2>
+          </div>
+
+          {/* Score Cards */}
+          <div className="cards-grid">
+            <div className="card">
+              <p className="card-label">SEO Score</p>
+              <p
+                className="card-value"
+                style={{ color: getScoreColor(data.seo_score) }}
+              >
+                {data.seo_score}
+                <span className="card-unit">/100</span>
+              </p>
+            </div>
+
+            <div className="card">
+              <p className="card-label">Difficulty</p>
+              <span className={getDifficultyClass(data.difficulty)}>
+                {data.difficulty}
+              </span>
+            </div>
+
+            <div className="card">
+              <p className="card-label">Suggestions</p>
+              <p className="card-value">{data.suggestions.length}</p>
+            </div>
+          </div>
+
+          {/* Suggestions */}
+          <div className="suggestions-box">
+            <h3 className="section-title">💡 Keyword Suggestions</h3>
+            <ul className="suggestions-list">
+              {data.suggestions.map((s, i) => (
+                <li
+                  key={i}
+                  className="suggestion-item"
+                  onClick={() => setKeyword(s)}
+                >
+                  <span className="suggestion-index">{i + 1}</span>
+                  {s}
+                  <span className="suggestion-hint">click to analyze →</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* History */}
+      {history.length > 0 && (
+        <div className="history-container">
+          <div className="history-header">
+            <h3 className="section-title">🕘 Recent Searches</h3>
+            <button onClick={clearHistory} className="clear-btn">
+              Clear
+            </button>
+          </div>
+          <div className="history-list">
+            {history.map((item, i) => (
+              <div
+                key={i}
+                className="history-item"
+                onClick={() => {
+                  setKeyword(item.keyword);
+                  setData(item);
+                }}
+              >
+                <span className="history-keyword">{item.keyword}</span>
+                <span
+                  className="history-score"
+                  style={{ color: getScoreColor(item.seo_score) }}
+                >
+                  {item.seo_score}/100
+                </span>
+                <span className={getDifficultyClass(item.difficulty)}>
+                  {item.difficulty}
+                </span>
+                <span className="history-time">{item.timestamp}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <footer className="footer">
+        <p>OptiSEO © {new Date().getFullYear()} — Keyword Intelligence Tool</p>
+      </footer>
     </div>
   );
 }
