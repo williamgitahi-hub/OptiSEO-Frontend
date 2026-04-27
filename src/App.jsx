@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "./App.css";
 
 function App() {
@@ -11,9 +11,16 @@ function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  useEffect(() => {
-    localStorage.setItem("seo_history", JSON.stringify(history));
-  }, [history]);
+  const saveToHistory = (result) => {
+    const entry = { ...result, timestamp: new Date().toLocaleString() };
+    setHistory(prev =>
+      [entry, ...prev.filter(h => h.keyword !== result.keyword)].slice(0, 10)
+    );
+    localStorage.setItem(
+      "seo_history",
+      JSON.stringify([entry, ...history.filter(h => h.keyword !== result.keyword)].slice(0, 10))
+    );
+  };
 
   const optimize = async () => {
     if (!keyword.trim()) return;
@@ -24,18 +31,13 @@ function App() {
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/optimize`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keyword })
       });
 
       const result = await res.json();
       setData(result);
-      setHistory(prev => [
-        { ...result, timestamp: new Date().toLocaleString() },
-        ...prev.filter(h => h.keyword !== result.keyword)
-      ].slice(0, 10));
+      saveToHistory(result);
 
     } catch (err) {
       setError("Failed to fetch results. Please try again.");
@@ -65,6 +67,12 @@ function App() {
     return "#e05c5c";
   };
 
+  const formatVolume = (vol) => {
+    if (vol >= 1000000) return `${(vol / 1000000).toFixed(1)}M`;
+    if (vol >= 1000) return `${(vol / 1000).toFixed(1)}K`;
+    return vol?.toString() || "0";
+  };
+
   return (
     <div className="app">
       {/* Header */}
@@ -83,41 +91,32 @@ function App() {
             placeholder="Enter a keyword to analyze..."
             className="search-input"
           />
-          <button
-            onClick={optimize}
-            disabled={loading}
-            className="search-btn"
-          >
+          <button onClick={optimize} disabled={loading} className="search-btn">
             {loading ? "Analyzing..." : "Optimize"}
           </button>
         </div>
         {error && <p className="error">{error}</p>}
       </div>
 
-      {/* Results */}
+      {/* Loading */}
       {loading && (
         <div className="loading-container">
           <div className="spinner"></div>
-          <p>Analyzing keyword...</p>
+          <p>Fetching real keyword data...</p>
         </div>
       )}
 
+      {/* Results */}
       {data && !loading && (
         <div className="results-container">
-          <div className="results-header">
-            <h2 className="results-keyword">"{data.keyword}"</h2>
-          </div>
+          <h2 className="results-keyword">"{data.keyword}"</h2>
 
           {/* Score Cards */}
           <div className="cards-grid">
             <div className="card">
               <p className="card-label">SEO Score</p>
-              <p
-                className="card-value"
-                style={{ color: getScoreColor(data.seo_score) }}
-              >
-                {data.seo_score}
-                <span className="card-unit">/100</span>
+              <p className="card-value" style={{ color: getScoreColor(data.seo_score) }}>
+                {data.seo_score}<span className="card-unit">/100</span>
               </p>
             </div>
 
@@ -126,6 +125,27 @@ function App() {
               <span className={getDifficultyClass(data.difficulty)}>
                 {data.difficulty}
               </span>
+            </div>
+
+            <div className="card">
+              <p className="card-label">Search Volume</p>
+              <p className="card-value" style={{ color: "#00c896" }}>
+                {formatVolume(data.search_volume)}
+              </p>
+            </div>
+
+            <div className="card">
+              <p className="card-label">Competition</p>
+              <p className="card-value" style={{ color: getScoreColor(100 - data.competition_index) }}>
+                {data.competition_index}<span className="card-unit">/100</span>
+              </p>
+            </div>
+
+            <div className="card">
+              <p className="card-label">Avg. CPC</p>
+              <p className="card-value" style={{ color: "#f5a623" }}>
+                ${data.cpc}
+              </p>
             </div>
 
             <div className="card">
@@ -159,30 +179,24 @@ function App() {
         <div className="history-container">
           <div className="history-header">
             <h3 className="section-title">🕘 Recent Searches</h3>
-            <button onClick={clearHistory} className="clear-btn">
-              Clear
-            </button>
+            <button onClick={clearHistory} className="clear-btn">Clear</button>
           </div>
           <div className="history-list">
             {history.map((item, i) => (
               <div
                 key={i}
                 className="history-item"
-                onClick={() => {
-                  setKeyword(item.keyword);
-                  setData(item);
-                }}
+                onClick={() => { setKeyword(item.keyword); setData(item); }}
               >
                 <span className="history-keyword">{item.keyword}</span>
-                <span
-                  className="history-score"
-                  style={{ color: getScoreColor(item.seo_score) }}
-                >
+                <span className="history-score" style={{ color: getScoreColor(item.seo_score) }}>
                   {item.seo_score}/100
                 </span>
                 <span className={getDifficultyClass(item.difficulty)}>
                   {item.difficulty}
                 </span>
+                <span className="history-vol">🔍 {formatVolume(item.search_volume)}</span>
+                <span className="history-cpc">💰 ${item.cpc}</span>
                 <span className="history-time">{item.timestamp}</span>
               </div>
             ))}

@@ -345,4 +345,13 @@ body {
   .history-item {
     flex-wrap: wrap;
   }
+/* Extra history styles for new fields */
+.history-vol {
+  color: #00c896;
+  font-size: 0.8rem;
+}
+
+.history-cpc {
+  color: #f5a623;
+  font-size: 0.8rem;
 }
